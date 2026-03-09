@@ -1,11 +1,11 @@
 services:
-  lookscript:
+  proxmox-monitor:
     build: .
-    container_name: lookscript
+    container_name: proxmox-monitor
     ports:
       - "8099:5000"
     volumes:
-      - lookscript-data:/data
+      - proxmox-monitor-data:/data
     restart: unless-stopped
     environment:
       - TZ=UTC
@@ -14,4 +14,4 @@ services:
       # - DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/YOUR_ID/YOUR_TOKEN
 
 volumes:
-  lookscript-data:
+  proxmox-monitor-data:
