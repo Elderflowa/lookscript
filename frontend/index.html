@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ProxmoxVE Script Monitor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0d0f14;
+      --surface:  #141720;
+      --card:     #1a1e2a;
+      --border:   #252b3b;
+      --accent:   #e06c1f;
+      --accent2:  #f59e0b;
+      --green:    #22c55e;
+      --red:      #ef4444;
+      --blue:     #3b82f6;
+      --text:     #e8eaf0;
+      --muted:    #6b7280;
+      --mono:     'Space Mono', monospace;
+      --sans:     'DM Sans', sans-serif;
+    }
+
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+    }
+
+    /* Subtle grid bg */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(224,108,31,.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(224,108,31,.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .app { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 0 20px 60px; }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 28px 0 24px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 32px;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .logo-icon {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+    }
+
+    .logo-text h1 {
+      font-family: var(--mono);
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      line-height: 1.2;
+    }
+
+    .logo-text p {
+      font-size: 0.75rem;
+      color: var(--muted);
+      font-family: var(--mono);
+      margin-top: 2px;
+    }
+
+    .header-actions { display: flex; gap: 10px; align-items: center; }
+
+    /* ── Stat Pills ── */
+    .stats-bar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+    }
+
+    .stat-pill {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+      min-width: 140px;
+    }
+
+    .stat-pill .stat-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .stat-pill .stat-icon.orange { background: rgba(224,108,31,.15); }
+    .stat-pill .stat-icon.green  { background: rgba(34,197,94,.15); }
+    .stat-pill .stat-icon.blue   { background: rgba(59,130,246,.15); }
+
+    .stat-pill .stat-val {
+      font-family: var(--mono);
+      font-size: 1.4rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .stat-pill .stat-lbl {
+      font-size: 0.72rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-top: 2px;
+    }
+
+    /* ── Layout ── */
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 20px;
+      align-items: start;
+    }
+
+    @media (max-width: 800px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+
+    /* ── Panel ── */
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .panel-title {
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    /* ── Buttons ── */
+    .btn {
+      font-family: var(--sans);
+      font-size: 0.82rem;
+      font-weight: 500;
+      border: none;
+      border-radius: 7px;
+      padding: 8px 16px;
+      cursor: pointer;
+      transition: all .15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+    .btn-primary:hover { background: #c95e17; transform: translateY(-1px); }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { color: var(--text); border-color: var(--muted); background: var(--surface); }
+
+    .btn-success {
+      background: rgba(34,197,94,.15);
+      color: var(--green);
+      border: 1px solid rgba(34,197,94,.25);
+    }
+    .btn-success:hover { background: rgba(34,197,94,.25); }
+
+    .btn-danger {
+      background: rgba(239,68,68,.15);
+      color: var(--red);
+      border: 1px solid rgba(239,68,68,.25);
+    }
+    .btn-danger:hover { background: rgba(239,68,68,.25); }
+
+    .btn:disabled { opacity: .4; cursor: not-allowed; transform: none !important; }
+
+    /* ── Timeline ── */
+    .timeline { padding: 8px 0; }
+
+    .tl-empty {
+      padding: 40px 24px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    .tl-empty svg { margin-bottom: 12px; opacity: .4; }
+
+    .tl-item {
+      display: flex;
+      gap: 0;
+      padding: 0 20px;
+      position: relative;
+      animation: fadeIn .35s ease both;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .tl-line-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 36px;
+      flex-shrink: 0;
+      padding-top: 18px;
+    }
+
+    .tl-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      position: relative;
+      z-index: 1;
+    }
+
+    .tl-dot.new-script { background: var(--accent); box-shadow: 0 0 8px rgba(224,108,31,.5); }
+    .tl-dot.check      { background: var(--border); }
+    .tl-dot.init       { background: var(--blue); }
+
+    .tl-connector {
+      width: 2px;
+      flex: 1;
+      min-height: 12px;
+      background: var(--border);
+      margin: 4px 0;
+    }
+
+    .tl-content {
+      flex: 1;
+      padding: 14px 0 14px 12px;
+    }
+
+    /* Script card inside timeline */
+    .script-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      transition: border-color .2s;
+    }
+
+    .script-card:hover { border-color: var(--accent); }
+
+    .script-card a { text-decoration: none; color: inherit; }
+
+    .script-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      background: var(--card);
+      object-fit: contain;
+      padding: 4px;
+      flex-shrink: 0;
+    }
+
+    .script-icon-fallback {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      background: var(--card);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .script-info { flex: 1; min-width: 0; }
+
+    .script-name {
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      padding: 2px 7px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    .badge-new    { background: rgba(224,108,31,.18); color: var(--accent); border: 1px solid rgba(224,108,31,.3); }
+    .badge-notified { background: rgba(34,197,94,.12); color: var(--green); border: 1px solid rgba(34,197,94,.25); }
+    .badge-failed { background: rgba(239,68,68,.12); color: var(--red); border: 1px solid rgba(239,68,68,.25); }
+    .badge-seeded { background: rgba(59,130,246,.12); color: var(--blue); border: 1px solid rgba(59,130,246,.25); }
+
+    .script-desc {
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .script-meta {
+      display: flex;
+      gap: 12px;
+      margin-top: 8px;
+      font-size: 0.73rem;
+      color: var(--muted);
+      font-family: var(--mono);
+      flex-wrap: wrap;
+    }
+
+    .script-meta span { display: flex; align-items: center; gap: 4px; }
+
+    /* System events (check / init) */
+    .sys-event {
+      font-size: 0.78rem;
+      color: var(--muted);
+      padding: 10px 0;
+      font-family: var(--mono);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* ── Sidebar ── */
+    .sidebar { display: flex; flex-direction: column; gap: 16px; }
+
+    /* Webhook card */
+    .webhook-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .status-dot.on  { background: var(--green); box-shadow: 0 0 6px rgba(34,197,94,.5); }
+    .status-dot.off { background: var(--muted); }
+
+    .input-group { margin-bottom: 12px; }
+    .input-group label { display: block; font-size: 0.75rem; color: var(--muted); margin-bottom: 6px; font-family: var(--mono); text-transform: uppercase; letter-spacing: .08em; }
+
+    .input-wrap { position: relative; }
+
+    .input-wrap input {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: var(--text);
+      font-size: 0.82rem;
+      font-family: var(--mono);
+      outline: none;
+      transition: border-color .2s;
+    }
+
+    .input-wrap input:focus { border-color: var(--accent); }
+    .input-wrap input::placeholder { color: var(--muted); }
+
+    .input-actions { display: flex; gap: 8px; margin-top: 10px; }
+    .input-actions .btn { flex: 1; justify-content: center; }
+
+    .msg {
+      font-size: 0.78rem;
+      padding: 8px 12px;
+      border-radius: 6px;
+      margin-top: 10px;
+      display: none;
+    }
+    .msg.success { background: rgba(34,197,94,.1); color: var(--green); border: 1px solid rgba(34,197,94,.2); display: block; }
+    .msg.error   { background: rgba(239,68,68,.1);  color: var(--red);   border: 1px solid rgba(239,68,68,.2);  display: block; }
+
+    /* Recent scripts list */
+    .recent-list { padding: 0; }
+    .recent-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 20px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.82rem;
+      transition: background .15s;
+    }
+    .recent-item:last-child { border-bottom: none; }
+    .recent-item:hover { background: var(--surface); }
+    .recent-item img, .recent-item .ri-fallback {
+      width: 28px; height: 28px;
+      border-radius: 6px;
+      background: var(--surface);
+      object-fit: contain;
+      padding: 3px;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+    }
+    .recent-item .ri-name { flex: 1; font-weight: 500; color: var(--text); }
+    .recent-item .ri-date { font-family: var(--mono); font-size: 0.7rem; color: var(--muted); }
+
+    /* ── Spinner ── */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner {
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,.2);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .6s linear infinite;
+      display: inline-block;
+    }
+
+    /* ── Pulse for live badge ── */
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: .4; }
+    }
+    .live-badge {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      color: var(--green);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .live-badge::before {
+      content: '';
+      width: 6px; height: 6px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+    /* Toast */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 20px;
+      font-size: 0.85rem;
+      box-shadow: 0 8px 32px rgba(0,0,0,.4);
+      transform: translateY(80px);
+      opacity: 0;
+      transition: all .3s ease;
+      z-index: 999;
+      max-width: 320px;
+    }
+    #toast.show { transform: translateY(0); opacity: 1; }
+    #toast.t-success { border-color: rgba(34,197,94,.4); color: var(--green); }
+    #toast.t-error   { border-color: rgba(239,68,68,.4);  color: var(--red); }
+    #toast.t-info    { border-color: rgba(224,108,31,.4); color: var(--accent); }
+
+    /* Refresh animation */
+    @keyframes rotate { to { transform: rotate(360deg); } }
+    .rotating { animation: rotate .6s linear; }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Header -->
+  <header>
+    <div class="logo">
+      <div class="logo-icon">⚡</div>
+      <div class="logo-text">
+        <h1>ProxmoxVE Monitor</h1>
+        <p>community-scripts tracker</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <span class="live-badge">LIVE</span>
+      <button class="btn btn-ghost" id="refreshBtn" onclick="refreshAll()">
+        <svg id="refreshIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+        Refresh
+      </button>
+      <button class="btn btn-primary" id="checkBtn" onclick="triggerCheck()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        Check Now
+      </button>
+    </div>
+  </header>
+
+  <!-- Stats -->
+  <div class="stats-bar">
+    <div class="stat-pill">
+      <div class="stat-icon orange">📦</div>
+      <div>
+        <div class="stat-val" id="statTotal">—</div>
+        <div class="stat-lbl">Scripts Tracked</div>
+      </div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-icon green">🆕</div>
+      <div>
+        <div class="stat-val" id="statNew">—</div>
+        <div class="stat-lbl">New Found</div>
+      </div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-icon blue">🕒</div>
+      <div>
+        <div class="stat-val" id="statLastCheck">—</div>
+        <div class="stat-lbl">Last Check</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main layout -->
+  <div class="layout">
+
+    <!-- Timeline -->
+    <div>
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Event Timeline</span>
+          <span id="eventCount" style="font-size:.75rem;color:var(--muted);font-family:var(--mono)"></span>
+        </div>
+        <div class="timeline" id="timeline">
+          <div class="tl-empty">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <p>Loading events…</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+
+      <!-- Webhook Config -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Discord Webhook</span>
+          <div class="webhook-status">
+            <div class="status-dot" id="webhookDot"></div>
+            <span id="webhookStatusText">Not configured</span>
+          </div>
+        </div>
+        <div style="padding: 16px;">
+          <div class="input-group">
+            <label>Webhook URL</label>
+            <div class="input-wrap">
+              <input type="password" id="webhookInput" placeholder="https://discord.com/api/webhooks/…" />
+            </div>
+          </div>
+          <div class="input-actions">
+            <button class="btn btn-primary" onclick="saveWebhook()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+              Save
+            </button>
+            <button class="btn btn-ghost" id="testBtn" onclick="testWebhook()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+              Test
+            </button>
+          </div>
+          <div class="msg" id="webhookMsg"></div>
+        </div>
+      </div>
+
+      <!-- Recent new scripts -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Recent New Scripts</span>
+        </div>
+        <div class="recent-list" id="recentList">
+          <div style="padding:20px;text-align:center;color:var(--muted);font-size:.82rem;">No new scripts detected yet.</div>
+        </div>
+      </div>
+
+      <!-- Info -->
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">About</span></div>
+        <div style="padding:16px;font-size:.8rem;color:var(--muted);line-height:1.7;">
+          <p>Monitors <a href="https://community-scripts.github.io/ProxmoxVE/scripts" target="_blank" style="color:var(--accent);text-decoration:none;">community-scripts.github.io</a> for new Proxmox scripts.</p>
+          <br>
+          <p>⏱ Auto-checks every <strong style="color:var(--text)">60 minutes</strong>.</p>
+          <p>🔔 Sends Discord embeds for each new script.</p>
+          <p>📋 Keeps the last 200 events in history.</p>
+        </div>
+      </div>
+
+      <!-- Force Reset -->
+      <div class="panel" style="border-color: rgba(239,68,68,.2);">
+        <div class="panel-header" style="border-color: rgba(239,68,68,.2);">
+          <span class="panel-title" style="color:var(--red);">Danger Zone</span>
+        </div>
+        <div style="padding:16px;">
+          <p style="font-size:.78rem;color:var(--muted);margin-bottom:12px;line-height:1.6;">Clears all known scripts and event history, then re-seeds the 3 newest scripts — <strong style="color:var(--text)">including Discord notifications</strong>. Useful for testing.</p>
+          <button class="btn btn-danger" id="resetBtn" onclick="forceReset()" style="width:100%;justify-content:center;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+            Force Reset & Re-seed
+          </button>
+          <div class="msg" id="resetMsg"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+  const API = '';
+
+  function toast(msg, type = 'info') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = `show t-${type}`;
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => t.classList.remove('show'), 3500);
+  }
+
+  function timeAgo(iso) {
+    if (!iso) return '—';
+    const diff = (Date.now() - new Date(iso)) / 1000;
+    if (diff < 60)   return 'just now';
+    if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
+    return `${Math.floor(diff/86400)}d ago`;
+  }
+
+  function formatDate(iso) {
+    if (!iso) return '';
+    try {
+      const d = new Date(iso);
+      return d.toLocaleString(undefined, { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+    } catch { return iso; }
+  }
+
+  function imgEl(src, alt) {
+    const img = document.createElement('img');
+    img.src = src;
+    img.alt = alt || '';
+    img.className = 'script-icon';
+    img.onerror = function() {
+      const fb = document.createElement('div');
+      fb.className = 'script-icon-fallback';
+      fb.textContent = '📦';
+      this.replaceWith(fb);
+    };
+    return img;
+  }
+
+  function renderTimeline(events) {
+    const container = document.getElementById('timeline');
+    document.getElementById('eventCount').textContent = `${events.length} event${events.length !== 1 ? 's' : ''}`;
+
+    if (!events.length) {
+      container.innerHTML = `<div class="tl-empty">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <p>No events yet. Try checking now!</p></div>`;
+      return;
+    }
+
+    container.innerHTML = '';
+    events.forEach((ev, i) => {
+      const item = document.createElement('div');
+      item.className = 'tl-item';
+      item.style.animationDelay = `${i * 0.04}s`;
+
+      const lineCol = document.createElement('div');
+      lineCol.className = 'tl-line-col';
+
+      const dot = document.createElement('div');
+      dot.className = `tl-dot ${ev.type || 'check'}`;
+
+      const connector = document.createElement('div');
+      connector.className = 'tl-connector';
+
+      lineCol.appendChild(dot);
+      if (i < events.length - 1) lineCol.appendChild(connector);
+
+      const content = document.createElement('div');
+      content.className = 'tl-content';
+
+      if (ev.type === 'new_script' && ev.script) {
+        const s = ev.script;
+        const card = document.createElement('div');
+        card.className = 'script-card';
+
+        // Icon
+        if (s.icon) {
+          card.appendChild(imgEl(s.icon, s.name));
+        } else {
+          const fb = document.createElement('div');
+          fb.className = 'script-icon-fallback';
+          fb.textContent = '📦';
+          card.appendChild(fb);
+        }
+
+        const info = document.createElement('div');
+        info.className = 'script-info';
+
+        const nameRow = document.createElement('div');
+        nameRow.className = 'script-name';
+        const nameLink = document.createElement('a');
+        nameLink.href = s.url || '#';
+        nameLink.target = '_blank';
+        nameLink.textContent = s.name || 'Unknown Script';
+        nameRow.appendChild(nameLink);
+
+        const badgeNew = document.createElement('span');
+        badgeNew.className = ev.seeded ? 'badge badge-seeded' : 'badge badge-new';
+        badgeNew.textContent = ev.seeded ? 'SEEDED' : 'NEW';
+        nameRow.appendChild(badgeNew);
+
+        if (ev.seeded) {
+          // seeded on first boot — no Discord ping, just informational
+        } else if (ev.notified) {
+          const badgeNotif = document.createElement('span');
+          badgeNotif.className = 'badge badge-notified';
+          badgeNotif.textContent = '✓ Sent';
+          nameRow.appendChild(badgeNotif);
+        } else if (ev.notified === false && !ev.seeded) {
+          // only show failed if it was a real attempt (webhook configured)
+        }
+
+        const desc = document.createElement('div');
+        desc.className = 'script-desc';
+        desc.textContent = s.description || '';
+
+        const meta = document.createElement('div');
+        meta.className = 'script-meta';
+        if (s.date) meta.innerHTML += `<span>📅 ${s.date}</span>`;
+        meta.innerHTML += `<span>🕒 ${timeAgo(ev.timestamp)}</span>`;
+
+        info.appendChild(nameRow);
+        info.appendChild(desc);
+        info.appendChild(meta);
+        card.appendChild(info);
+        content.appendChild(card);
+
+      } else {
+        const sysEl = document.createElement('div');
+        sysEl.className = 'sys-event';
+        const icon = ev.type === 'init' ? '🚀' : '🔍';
+        sysEl.innerHTML = `<span>${icon}</span><span>${ev.message || 'System event'}</span><span style="margin-left:auto;opacity:.5">${timeAgo(ev.timestamp)}</span>`;
+        content.appendChild(sysEl);
+      }
+
+      item.appendChild(lineCol);
+      item.appendChild(content);
+      container.appendChild(item);
+    });
+  }
+
+  function renderRecent(events) {
+    const newScripts = events.filter(e => e.type === 'new_script' && e.script).slice(0, 8);
+    const container = document.getElementById('recentList');
+    if (!newScripts.length) {
+      container.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:.82rem;">No new scripts detected yet.</div>';
+      return;
+    }
+    container.innerHTML = '';
+    newScripts.forEach(ev => {
+      const s = ev.script;
+      const item = document.createElement('div');
+      item.className = 'recent-item';
+
+      if (s.icon) {
+        const img = document.createElement('img');
+        img.src = s.icon;
+        img.alt = s.name;
+        img.onerror = function() {
+          const fb = document.createElement('div');
+          fb.className = 'ri-fallback';
+          fb.textContent = '📦';
+          this.replaceWith(fb);
+        };
+        item.appendChild(img);
+      } else {
+        const fb = document.createElement('div');
+        fb.className = 'ri-fallback';
+        fb.textContent = '📦';
+        item.appendChild(fb);
+      }
+
+      const name = document.createElement('span');
+      name.className = 'ri-name';
+      name.textContent = s.name || '—';
+
+      const date = document.createElement('span');
+      date.className = 'ri-date';
+      date.textContent = s.date || timeAgo(ev.timestamp);
+
+      item.appendChild(name);
+      item.appendChild(date);
+      container.appendChild(item);
+    });
+  }
+
+  async function loadEvents() {
+    try {
+      const r = await fetch(`${API}/api/events`);
+      const d = await r.json();
+      renderTimeline(d.events || []);
+      renderRecent(d.events || []);
+    } catch(e) { console.error('loadEvents error', e); }
+  }
+
+  async function loadStats() {
+    try {
+      const r = await fetch(`${API}/api/stats`);
+      const d = await r.json();
+      document.getElementById('statTotal').textContent = d.total_tracked ?? '—';
+      document.getElementById('statNew').textContent = d.total_new_found ?? '—';
+      document.getElementById('statLastCheck').textContent = d.last_check ? timeAgo(d.last_check) : '—';
+
+      const dot = document.getElementById('webhookDot');
+      const statusText = document.getElementById('webhookStatusText');
+      if (d.webhook_configured) {
+        dot.className = 'status-dot on';
+        statusText.textContent = 'Connected';
+        statusText.style.color = 'var(--green)';
+      } else {
+        dot.className = 'status-dot off';
+        statusText.textContent = 'Not configured';
+        statusText.style.color = '';
+      }
+    } catch(e) { console.error('loadStats error', e); }
+  }
+
+  async function refreshAll() {
+    const icon = document.getElementById('refreshIcon');
+    icon.classList.add('rotating');
+    await Promise.all([loadEvents(), loadStats()]);
+    setTimeout(() => icon.classList.remove('rotating'), 600);
+    toast('Refreshed', 'info');
+  }
+
+  async function triggerCheck() {
+    const btn = document.getElementById('checkBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Checking…';
+    try {
+      const r = await fetch(`${API}/api/check`, { method: 'POST' });
+      const d = await r.json();
+      toast('Check triggered! Refreshing in 5s…', 'info');
+      setTimeout(refreshAll, 5000);
+    } catch(e) {
+      toast('Failed to trigger check', 'error');
+    } finally {
+      setTimeout(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg> Check Now';
+      }, 2000);
+    }
+  }
+
+  async function forceReset() {
+    const btn = document.getElementById('resetBtn');
+    const msg = document.getElementById('resetMsg');
+    if (!confirm('This will clear all state and re-seed the 3 newest scripts, sending Discord notifications if a webhook is configured. Continue?')) return;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Resetting…';
+    try {
+      const r = await fetch(`${API}/api/reset`, { method: 'POST' });
+      const d = await r.json();
+      if (d.success) {
+        msg.className = 'msg success';
+        msg.textContent = '✓ Reset triggered! Refreshing in 5s…';
+        toast('Reset triggered!', 'success');
+        setTimeout(refreshAll, 5000);
+      } else {
+        msg.className = 'msg error';
+        msg.textContent = d.error || 'Reset failed';
+        toast('Reset failed', 'error');
+      }
+    } catch(e) {
+      msg.className = 'msg error';
+      msg.textContent = 'Connection error';
+      toast('Connection error', 'error');
+    } finally {
+      setTimeout(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg> Force Reset & Re-seed';
+        msg.className = 'msg';
+      }, 6000);
+    }
+  }
+
+  async function saveWebhook() {
+    const url = document.getElementById('webhookInput').value.trim();
+    const msg = document.getElementById('webhookMsg');
+    try {
+      const r = await fetch(`${API}/api/webhook`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ webhook_url: url })
+      });
+      const d = await r.json();
+      if (d.success) {
+        msg.className = 'msg success';
+        msg.textContent = '✓ Webhook saved successfully';
+        toast('Webhook saved!', 'success');
+        loadStats();
+      } else {
+        msg.className = 'msg error';
+        msg.textContent = d.error || 'Failed to save';
+      }
+    } catch(e) {
+      msg.className = 'msg error';
+      msg.textContent = 'Connection error';
+    }
+    setTimeout(() => msg.className = 'msg', 4000);
+  }
+
+  async function testWebhook() {
+    const btn = document.getElementById('testBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Sending…';
+    const msg = document.getElementById('webhookMsg');
+    try {
+      const r = await fetch(`${API}/api/webhook/test`, { method: 'POST' });
+      const d = await r.json();
+      if (d.success) {
+        msg.className = 'msg success';
+        msg.textContent = '✓ Test sent! Check your Discord channel.';
+        toast('Test notification sent!', 'success');
+      } else {
+        msg.className = 'msg error';
+        msg.textContent = d.error || 'Test failed';
+        toast('Test failed', 'error');
+      }
+    } catch(e) {
+      msg.className = 'msg error';
+      msg.textContent = 'Connection error';
+    } finally {
+      setTimeout(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg> Test';
+        msg.className = 'msg';
+      }, 4000);
+    }
+  }
+
+  // Init
+  (async () => {
+    await Promise.all([loadEvents(), loadStats()]);
+    // Auto-refresh every 2 minutes
+    setInterval(refreshAll, 120000);
+    // Update time-ago strings every 30s
+    setInterval(() => {
+      document.getElementById('statLastCheck') && loadStats();
+    }, 30000);
+  })();
+</script>
+</body>
+</html>
+
