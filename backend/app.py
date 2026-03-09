@@ -97,7 +97,7 @@ def send_discord_embed(webhook_url, script):
         url = script.get('url', SCRAPE_URL)
         
         embed = {
-            "title": f"🆕 New Script: {name}",
+            "title": f"🟢 {name}",
             "description": description,
             "url": url,
             "color": 0xE67E22,
@@ -144,6 +144,7 @@ def check_for_new_scripts():
                 continue
             
             known = state.get('known_scripts', {})
+            webhook_url = state.get('webhook_url', '')
 
             # ── First run ────────────────────────────────────────────────────
             # Sort ALL fetched scripts by date_created descending, surface the
@@ -169,14 +170,17 @@ def check_for_new_scripts():
 
                 # Insert top-3 as new_script events (newest first = index 0)
                 for script in reversed(top3):
-                    state['events'].insert(0, {
+                    logger.info(f"Seeded on first run: {script.get('name')} ({script.get('date')})")
+                    event = {
                         'type': 'new_script',
                         'script': script,
                         'timestamp': datetime.now(timezone.utc).isoformat(),
-                        'notified': False,  # first-boot seeds don't ping Discord
-                        'seeded': True      # flag so UI can show "seeded" vs truly new
-                    })
-                    logger.info(f"Seeded on first run: {script.get('name')} ({script.get('date')})")
+                        'notified': False,
+                        'seeded': True
+                    }
+                    if webhook_url:
+                        event['notified'] = send_discord_embed(webhook_url, script)
+                    state['events'].insert(0, event)
 
                 state['known_scripts'] = current_scripts
                 state['events'] = state['events'][:200]
@@ -188,7 +192,6 @@ def check_for_new_scripts():
                 # Sort new scripts oldest→newest so timeline reads chronologically
                 new_found.sort(key=lambda s: s.get('date', ''))
 
-                webhook_url = state.get('webhook_url', '')
                 for script in new_found:
                     logger.info(f"New script found: {script.get('name')} ({script.get('date')})")
                     event = {

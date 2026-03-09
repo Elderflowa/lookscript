@@ -8,10 +8,10 @@ services:
       - lookscript-data:/data
     restart: unless-stopped
     environment:
-      - TZ=UTC
+      - TZ=Europe/Copenhagen
       # Optional: set your Discord webhook URL here instead of via the web UI.
       # Only applied on first boot if no webhook is saved yet.
-      # - DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/YOUR_ID/YOUR_TOKEN
+      - DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/1480503484817346672/Eh5fvrUWhm-4MrzHdB2sGr_Zn6RmE0yKsToSFc0m-0kycLAO-kCJ4BWemu7Kuy4lB276
 
 volumes:
   lookscript-data:
