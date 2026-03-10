@@ -11,7 +11,7 @@ services:
       - TZ=Europe/Copenhagen
       # Optional: set your Discord webhook URL here instead of via the web UI.
       # Only applied on first boot if no webhook is saved yet.
-      # - DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/ID/TOKEN
+#      - DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/ID/TOKEN
 
 volumes:
   lookscript-data:
