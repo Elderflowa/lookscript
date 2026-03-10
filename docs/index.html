@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ProxmoxVE Script Monitor</title>
+  <title>LookScript — Demo</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <style>
@@ -25,562 +25,234 @@
       --sans:     'DM Sans', sans-serif;
     }
 
-    html, body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: var(--sans);
-      min-height: 100vh;
-    }
+    html, body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; }
 
-    /* Subtle grid bg */
     body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
+      content: ''; position: fixed; inset: 0;
       background-image:
         linear-gradient(rgba(224,108,31,.03) 1px, transparent 1px),
         linear-gradient(90deg, rgba(224,108,31,.03) 1px, transparent 1px);
-      background-size: 40px 40px;
-      pointer-events: none;
-      z-index: 0;
+      background-size: 40px 40px; pointer-events: none; z-index: 0;
     }
 
     .app { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 0 20px 60px; }
 
-    /* ── Header ── */
-    header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 28px 0 24px;
-      border-bottom: 1px solid var(--border);
-      margin-bottom: 32px;
-      gap: 16px;
-      flex-wrap: wrap;
-    }
-
-    .logo {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-    }
-
-    .logo-icon {
-      width: 44px;
-      height: 44px;
-      background: linear-gradient(135deg, #710500, var(--accent2));
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 22px;
-    }
-
-    .logo-text h1 {
-      font-family: var(--mono);
-      font-size: 1.1rem;
-      font-weight: 700;
-      letter-spacing: -0.5px;
-      line-height: 1.2;
-    }
-
-    .logo-text p {
-      font-size: 0.75rem;
-      color: var(--muted);
-      font-family: var(--mono);
-      margin-top: 2px;
-    }
-
-    .header-actions { display: flex; gap: 10px; align-items: center; }
-
-    /* ── Stat Pills ── */
-    .stats-bar {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 28px;
-      flex-wrap: wrap;
-    }
-
-    .stat-pill {
-      background: var(--card);
-      border: 1px solid var(--border);
+    /* ── Demo banner ── */
+    .demo-banner {
+      background: linear-gradient(90deg, rgba(113,5,0,.25), rgba(224,108,31,.1));
+      border: 1px solid rgba(224,108,31,.3);
       border-radius: 8px;
-      padding: 10px 18px;
+      padding: 10px 16px;
+      font-size: 0.78rem;
+      color: var(--accent2);
+      font-family: var(--mono);
       display: flex;
       align-items: center;
       gap: 10px;
-      flex: 1;
-      min-width: 140px;
+      margin-bottom: 20px;
     }
+    .demo-banner a { color: var(--accent); text-decoration: none; }
+    .demo-banner a:hover { text-decoration: underline; }
 
-    .stat-pill .stat-icon {
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 16px;
-      flex-shrink: 0;
+    /* ── Header ── */
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 28px 0 24px; border-bottom: 1px solid var(--border);
+      margin-bottom: 20px; gap: 16px; flex-wrap: wrap;
     }
-
-    .stat-pill .stat-icon.orange { background: rgba(224,108,31,.15); }
-    .stat-pill .stat-icon.green  { background: rgba(34,197,94,.15); }
-    .stat-pill .stat-icon.blue   { background: rgba(59,130,246,.15); }
-
-    .stat-pill .stat-val {
-      font-family: var(--mono);
-      font-size: 1.4rem;
-      font-weight: 700;
-      line-height: 1;
+    .logo { display: flex; align-items: center; gap: 14px; }
+    .logo-icon {
+      width: 44px; height: 44px;
+      background: linear-gradient(135deg, #710500, var(--accent2));
+      border-radius: 10px; display: flex; align-items: center;
+      justify-content: center; font-size: 22px;
     }
-
-    .stat-pill .stat-lbl {
-      font-size: 0.72rem;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: .08em;
-      margin-top: 2px;
-    }
-
-    /* ── Layout ── */
-    .layout {
-      display: grid;
-      grid-template-columns: 1fr 340px;
-      gap: 20px;
-      align-items: start;
-    }
-
-    @media (max-width: 800px) {
-      .layout { grid-template-columns: 1fr; }
-    }
-
-    /* ── Panel ── */
-    .panel {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      overflow: hidden;
-    }
-
-    .panel-header {
-      padding: 16px 20px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-    }
-
-    .panel-title {
-      font-family: var(--mono);
-      font-size: 0.8rem;
-      letter-spacing: .12em;
-      text-transform: uppercase;
-      color: var(--muted);
-    }
+    .logo-text h1 { font-family: var(--mono); font-size: 1.1rem; font-weight: 700; letter-spacing: -0.5px; line-height: 1.2; }
+    .logo-text p  { font-size: 0.75rem; color: var(--muted); font-family: var(--mono); margin-top: 2px; }
+    .header-actions { display: flex; gap: 10px; align-items: center; }
 
     /* ── Buttons ── */
     .btn {
-      font-family: var(--sans);
-      font-size: 0.82rem;
-      font-weight: 500;
-      border: none;
-      border-radius: 7px;
-      padding: 8px 16px;
-      cursor: pointer;
-      transition: all .15s ease;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      white-space: nowrap;
+      font-family: var(--sans); font-size: 0.82rem; font-weight: 500;
+      border: none; border-radius: 7px; padding: 8px 16px; cursor: default;
+      display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+      opacity: .55;
     }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-ghost   { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+    .btn-danger  { background: rgba(239,68,68,.15); color: var(--red); border: 1px solid rgba(239,68,68,.25); }
 
-    .btn-primary {
-      background: var(--accent);
-      color: #fff;
+    /* ── Stats ── */
+    .stats-bar { display: flex; gap: 12px; margin-bottom: 28px; flex-wrap: wrap; }
+    .stat-pill {
+      background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+      padding: 10px 18px; display: flex; align-items: center; gap: 10px;
+      flex: 1; min-width: 140px;
     }
-    .btn-primary:hover { background: #c95e17; transform: translateY(-1px); }
+    .stat-pill .stat-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+    .stat-pill .stat-icon.orange { background: rgba(224,108,31,.15); }
+    .stat-pill .stat-icon.green  { background: rgba(34,197,94,.15); }
+    .stat-pill .stat-icon.blue   { background: rgba(59,130,246,.15); }
+    .stat-pill .stat-val { font-family: var(--mono); font-size: 1.4rem; font-weight: 700; line-height: 1; }
+    .stat-pill .stat-lbl { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-top: 2px; }
 
-    .btn-ghost {
-      background: transparent;
-      color: var(--muted);
-      border: 1px solid var(--border);
-    }
-    .btn-ghost:hover { color: var(--text); border-color: var(--muted); background: var(--surface); }
+    /* ── Layout ── */
+    .layout { display: grid; grid-template-columns: 1fr 340px; gap: 20px; align-items: start; }
+    @media (max-width: 800px) { .layout { grid-template-columns: 1fr; } }
 
-    .btn-success {
-      background: rgba(34,197,94,.15);
-      color: var(--green);
-      border: 1px solid rgba(34,197,94,.25);
-    }
-    .btn-success:hover { background: rgba(34,197,94,.25); }
-
-    .btn-danger {
-      background: rgba(239,68,68,.15);
-      color: var(--red);
-      border: 1px solid rgba(239,68,68,.25);
-    }
-    .btn-danger:hover { background: rgba(239,68,68,.25); }
-
-    .btn:disabled { opacity: .4; cursor: not-allowed; transform: none !important; }
+    /* ── Panel ── */
+    .panel { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .panel-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .panel-title { font-family: var(--mono); font-size: 0.8rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
 
     /* ── Timeline ── */
     .timeline { padding: 8px 0; }
-
-    .tl-empty {
-      padding: 40px 24px;
-      text-align: center;
-      color: var(--muted);
-      font-size: 0.88rem;
-    }
-
-    .tl-empty svg { margin-bottom: 12px; opacity: .4; }
-
-    .tl-item {
-      display: flex;
-      gap: 0;
-      padding: 0 20px;
-      position: relative;
-      animation: fadeIn .35s ease both;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(8px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-
-    .tl-line-col {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      width: 36px;
-      flex-shrink: 0;
-      padding-top: 18px;
-    }
-
-    .tl-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      flex-shrink: 0;
-      position: relative;
-      z-index: 1;
-    }
-
+    .tl-item { display: flex; gap: 0; padding: 0 20px; position: relative; animation: fadeIn .35s ease both; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .tl-line-col { display: flex; flex-direction: column; align-items: center; width: 36px; flex-shrink: 0; padding-top: 18px; }
+    .tl-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; position: relative; z-index: 1; }
     .tl-dot.new-script { background: var(--accent); box-shadow: 0 0 8px rgba(224,108,31,.5); }
     .tl-dot.check      { background: var(--border); }
     .tl-dot.init       { background: var(--blue); }
+    .tl-connector { width: 2px; flex: 1; min-height: 12px; background: var(--border); margin: 4px 0; }
+    .tl-content { flex: 1; padding: 14px 0 14px 12px; }
 
-    .tl-connector {
-      width: 2px;
-      flex: 1;
-      min-height: 12px;
-      background: var(--border);
-      margin: 4px 0;
-    }
-
-    .tl-content {
-      flex: 1;
-      padding: 14px 0 14px 12px;
-    }
-
-    /* Script card inside timeline */
     .script-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 14px;
-      display: flex;
-      gap: 12px;
-      align-items: flex-start;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+      padding: 14px; display: flex; gap: 12px; align-items: flex-start;
       transition: border-color .2s;
     }
-
     .script-card:hover { border-color: var(--accent); }
-
     .script-card a { text-decoration: none; color: inherit; }
-
-    .script-icon {
-      width: 40px;
-      height: 40px;
-      border-radius: 8px;
-      background: var(--card);
-      object-fit: contain;
-      padding: 4px;
-      flex-shrink: 0;
-    }
-
-    .script-icon-fallback {
-      width: 40px;
-      height: 40px;
-      border-radius: 8px;
-      background: var(--card);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 18px;
-      flex-shrink: 0;
-    }
-
+    .script-icon { width: 40px; height: 40px; border-radius: 8px; background: var(--card); object-fit: contain; padding: 4px; flex-shrink: 0; }
+    .script-icon-fallback { width: 40px; height: 40px; border-radius: 8px; background: var(--card); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
     .script-info { flex: 1; min-width: 0; }
-
-    .script-name {
-      font-weight: 600;
-      font-size: 0.9rem;
-      margin-bottom: 4px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .badge {
-      font-family: var(--mono);
-      font-size: 0.65rem;
-      padding: 2px 7px;
-      border-radius: 4px;
-      text-transform: uppercase;
-      letter-spacing: .08em;
-    }
-
-    .badge-new    { background: rgba(224,108,31,.18); color: var(--accent); border: 1px solid rgba(224,108,31,.3); }
-    .badge-notified { background: rgba(34,197,94,.12); color: var(--green); border: 1px solid rgba(34,197,94,.25); }
-    .badge-failed { background: rgba(239,68,68,.12); color: var(--red); border: 1px solid rgba(239,68,68,.25); }
-    .badge-seeded { background: rgba(59,130,246,.12); color: var(--blue); border: 1px solid rgba(59,130,246,.25); }
-
-    .script-desc {
-      font-size: 0.8rem;
-      color: var(--muted);
-      line-height: 1.5;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
-
-    .script-meta {
-      display: flex;
-      gap: 12px;
-      margin-top: 8px;
-      font-size: 0.73rem;
-      color: var(--muted);
-      font-family: var(--mono);
-      flex-wrap: wrap;
-    }
-
+    .script-name { font-weight: 600; font-size: 0.9rem; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .badge { font-family: var(--mono); font-size: 0.65rem; padding: 2px 7px; border-radius: 4px; text-transform: uppercase; letter-spacing: .08em; }
+    .badge-new      { background: rgba(224,108,31,.18); color: var(--accent);  border: 1px solid rgba(224,108,31,.3); }
+    .badge-notified { background: rgba(34,197,94,.12);  color: var(--green);   border: 1px solid rgba(34,197,94,.25); }
+    .badge-seeded   { background: rgba(59,130,246,.12); color: var(--blue);    border: 1px solid rgba(59,130,246,.25); }
+    .script-desc { font-size: 0.8rem; color: var(--muted); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .script-meta { display: flex; gap: 12px; margin-top: 8px; font-size: 0.73rem; color: var(--muted); font-family: var(--mono); flex-wrap: wrap; }
     .script-meta span { display: flex; align-items: center; gap: 4px; }
-
-    /* System events (check / init) */
-    .sys-event {
-      font-size: 0.78rem;
-      color: var(--muted);
-      padding: 10px 0;
-      font-family: var(--mono);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
+    .sys-event { font-size: 0.78rem; color: var(--muted); padding: 10px 0; font-family: var(--mono); display: flex; align-items: center; gap: 8px; }
 
     /* ── Sidebar ── */
     .sidebar { display: flex; flex-direction: column; gap: 16px; }
-
-    /* Webhook card */
-    .webhook-status {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 0.8rem;
-      color: var(--muted);
-      margin-bottom: 14px;
-    }
-
-    .status-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-
-    .status-dot.on  { background: var(--green); box-shadow: 0 0 6px rgba(34,197,94,.5); }
-    .status-dot.off { background: var(--muted); }
-
+    .webhook-status { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; margin-bottom: 14px; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .status-dot.on { background: var(--green); box-shadow: 0 0 6px rgba(34,197,94,.5); }
     .input-group { margin-bottom: 12px; }
     .input-group label { display: block; font-size: 0.75rem; color: var(--muted); margin-bottom: 6px; font-family: var(--mono); text-transform: uppercase; letter-spacing: .08em; }
-
-    .input-wrap { position: relative; }
-
     .input-wrap input {
-      width: 100%;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 10px 14px;
-      color: var(--text);
-      font-size: 0.82rem;
-      font-family: var(--mono);
-      outline: none;
-      transition: border-color .2s;
+      width: 100%; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px 14px; color: var(--muted);
+      font-size: 0.82rem; font-family: var(--mono); outline: none;
     }
-
-    .input-wrap input:focus { border-color: var(--accent); }
-    .input-wrap input::placeholder { color: var(--muted); }
-
     .input-actions { display: flex; gap: 8px; margin-top: 10px; }
     .input-actions .btn { flex: 1; justify-content: center; }
 
-    .msg {
-      font-size: 0.78rem;
-      padding: 8px 12px;
-      border-radius: 6px;
-      margin-top: 10px;
-      display: none;
-    }
-    .msg.success { background: rgba(34,197,94,.1); color: var(--green); border: 1px solid rgba(34,197,94,.2); display: block; }
-    .msg.error   { background: rgba(239,68,68,.1);  color: var(--red);   border: 1px solid rgba(239,68,68,.2);  display: block; }
-
-    /* Recent scripts list */
     .recent-list { padding: 0; }
-    .recent-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 11px 20px;
-      border-bottom: 1px solid var(--border);
-      font-size: 0.82rem;
-      transition: background .15s;
-    }
+    .recent-item { display: flex; align-items: center; gap: 10px; padding: 11px 20px; border-bottom: 1px solid var(--border); font-size: 0.82rem; }
     .recent-item:last-child { border-bottom: none; }
-    .recent-item:hover { background: var(--surface); }
-    .recent-item img, .recent-item .ri-fallback {
-      width: 28px; height: 28px;
-      border-radius: 6px;
-      background: var(--surface);
-      object-fit: contain;
-      padding: 3px;
-      flex-shrink: 0;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 14px;
-    }
-    .recent-item .ri-name { flex: 1; font-weight: 500; color: var(--text); }
-    .recent-item .ri-date { font-family: var(--mono); font-size: 0.7rem; color: var(--muted); }
+    .recent-item img { width: 28px; height: 28px; border-radius: 6px; background: var(--surface); object-fit: contain; padding: 3px; flex-shrink: 0; }
+    .ri-name { flex: 1; font-weight: 500; color: var(--text); }
+    .ri-date { font-family: var(--mono); font-size: 0.7rem; color: var(--muted); }
 
-    /* ── Spinner ── */
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .spinner {
-      width: 14px; height: 14px;
-      border: 2px solid rgba(255,255,255,.2);
-      border-top-color: #fff;
-      border-radius: 50%;
-      animation: spin .6s linear infinite;
-      display: inline-block;
-    }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
+    .live-badge { font-family: var(--mono); font-size: 0.65rem; color: var(--green); display: flex; align-items: center; gap: 5px; }
+    .live-badge::before { content: ''; width: 6px; height: 6px; background: var(--green); border-radius: 50%; animation: pulse 2s ease-in-out infinite; }
 
-    /* ── Pulse for live badge ── */
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50%       { opacity: .4; }
-    }
-    .live-badge {
-      font-family: var(--mono);
-      font-size: 0.65rem;
-      color: var(--green);
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-    .live-badge::before {
-      content: '';
-      width: 6px; height: 6px;
-      background: var(--green);
-      border-radius: 50%;
-      animation: pulse 2s ease-in-out infinite;
-    }
-
-    /* Scrollbar */
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-track { background: var(--bg); }
     ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
 
-    /* Toast */
-    #toast {
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      background: var(--card);
+    /* install card */
+    .install-card {
+      background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 10px;
-      padding: 12px 20px;
-      font-size: 0.85rem;
-      box-shadow: 0 8px 32px rgba(0,0,0,.4);
-      transform: translateY(80px);
-      opacity: 0;
-      transition: all .3s ease;
-      z-index: 999;
-      max-width: 320px;
+      padding: 14px 16px;
+      font-size: 0.78rem;
+      color: var(--muted);
+      line-height: 1.8;
     }
-    #toast.show { transform: translateY(0); opacity: 1; }
-    #toast.t-success { border-color: rgba(34,197,94,.4); color: var(--green); }
-    #toast.t-error   { border-color: rgba(239,68,68,.4);  color: var(--red); }
-    #toast.t-info    { border-color: rgba(224,108,31,.4); color: var(--accent); }
+    .install-card code {
+      display: block;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 12px;
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--accent2);
+      margin-top: 10px;
+      white-space: pre;
+      overflow-x: auto;
+    }
+    .install-card a { color: var(--accent); text-decoration: none; }
+    .install-card a:hover { text-decoration: underline; }
 
-    /* Refresh animation */
-    @keyframes rotate { to { transform: rotate(360deg); } }
-    .rotating { animation: rotate .6s linear; }
+    .gh-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 7px; padding: 7px 14px;
+      font-size: 0.82rem; font-weight: 500; color: var(--text);
+      text-decoration: none; transition: border-color .2s;
+    }
+    .gh-link:hover { border-color: var(--muted); }
   </style>
 </head>
 <body>
 <div class="app">
 
-  <!-- Header -->
   <header>
     <div class="logo">
       <div class="logo-icon">⚡</div>
       <div class="logo-text">
-        <h1>ProxmoxVE Monitor</h1>
+        <h1>LookScript</h1>
         <p>community-scripts tracker</p>
       </div>
     </div>
     <div class="header-actions">
-      <span class="live-badge">LIVE</span>
-      <button class="btn btn-ghost" id="refreshBtn" onclick="refreshAll()">
-        <svg id="refreshIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+      <span class="live-badge">DEMO</span>
+      <a class="gh-link" href="https://github.com/elderflowa/lookscript" target="_blank">
+        <svg width="15" height="15" viewBox="0 0 496 512" fill="currentColor"><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8z"/></svg>
+        GitHub
+      </a>
+      <button class="btn btn-ghost" title="Disabled in demo">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
         Refresh
       </button>
-      <button class="btn btn-primary" id="checkBtn" onclick="triggerCheck()">
+      <button class="btn btn-primary" title="Disabled in demo">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
         Check Now
       </button>
     </div>
   </header>
 
+  <!-- Demo banner -->
+  <div class="demo-banner">
+    ⚡ This is a live demo — data is static. Deploy your own instance with Docker:
+    <a href="https://github.com/elderflowa/lookscript" target="_blank">elderflowa/lookscript →</a>
+  </div>
+
   <!-- Stats -->
   <div class="stats-bar">
     <div class="stat-pill">
       <div class="stat-icon orange">📦</div>
-      <div>
-        <div class="stat-val" id="statTotal">—</div>
-        <div class="stat-lbl">Scripts Tracked</div>
-      </div>
+      <div><div class="stat-val">484</div><div class="stat-lbl">Scripts Tracked</div></div>
     </div>
     <div class="stat-pill">
       <div class="stat-icon green">🆕</div>
-      <div>
-        <div class="stat-val" id="statNew">—</div>
-        <div class="stat-lbl">New Found</div>
-      </div>
+      <div><div class="stat-val">6</div><div class="stat-lbl">New Found</div></div>
     </div>
     <div class="stat-pill">
       <div class="stat-icon blue">🕒</div>
-      <div>
-        <div class="stat-val" id="statLastCheck">—</div>
-        <div class="stat-lbl">Last Check</div>
-      </div>
+      <div><div class="stat-val">2m ago</div><div class="stat-lbl">Last Check</div></div>
     </div>
   </div>
 
-  <!-- Main layout -->
   <div class="layout">
 
     <!-- Timeline -->
@@ -588,84 +260,110 @@
       <div class="panel">
         <div class="panel-header">
           <span class="panel-title">Event Timeline</span>
-          <span id="eventCount" style="font-size:.75rem;color:var(--muted);font-family:var(--mono)"></span>
+          <span style="font-size:.75rem;color:var(--muted);font-family:var(--mono)">9 events</span>
         </div>
-        <div class="timeline" id="timeline">
-          <div class="tl-empty">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            <p>Loading events…</p>
-          </div>
-        </div>
+        <div class="timeline" id="timeline"></div>
       </div>
     </div>
 
     <!-- Sidebar -->
     <div class="sidebar">
 
-      <!-- Webhook Config -->
+      <!-- Webhook -->
       <div class="panel">
         <div class="panel-header">
           <span class="panel-title">Discord Webhook</span>
           <div class="webhook-status">
-            <div class="status-dot" id="webhookDot"></div>
-            <span id="webhookStatusText">Not configured</span>
+            <div class="status-dot on"></div>
+            <span style="color:var(--green);font-size:.8rem;">Connected</span>
           </div>
         </div>
-        <div style="padding: 16px;">
+        <div style="padding:16px;">
           <div class="input-group">
             <label>Webhook URL</label>
             <div class="input-wrap">
-              <input type="password" id="webhookInput" placeholder="https://discord.com/api/webhooks/…" />
+              <input type="password" value="https://discord.com/api/webhooks/*****/***" readonly />
             </div>
           </div>
           <div class="input-actions">
-            <button class="btn btn-primary" onclick="saveWebhook()">
+            <button class="btn btn-primary" title="Disabled in demo">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
               Save
             </button>
-            <button class="btn btn-ghost" id="testBtn" onclick="testWebhook()">
+            <button class="btn btn-ghost" title="Disabled in demo">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
               Test
             </button>
           </div>
-          <div class="msg" id="webhookMsg"></div>
         </div>
       </div>
 
-      <!-- Recent new scripts -->
+      <!-- Recent -->
       <div class="panel">
-        <div class="panel-header">
-          <span class="panel-title">Recent New Scripts</span>
-        </div>
-        <div class="recent-list" id="recentList">
-          <div style="padding:20px;text-align:center;color:var(--muted);font-size:.82rem;">No new scripts detected yet.</div>
+        <div class="panel-header"><span class="panel-title">Recent New Scripts</span></div>
+        <div class="recent-list">
+          <div class="recent-item">
+            <img src="https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/immich-frame.webp" alt="ImmichFrame" onerror="this.style.display='none'">
+            <span class="ri-name">ImmichFrame LXC</span>
+            <span class="ri-date">2026-03-07</span>
+          </div>
+          <div class="recent-item">
+            <img src="https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/ddclient.webp" alt="ddclient" onerror="this.style.display='none'">
+            <span class="ri-name">ddclient LXC</span>
+            <span class="ri-date">2026-03-05</span>
+          </div>
+          <div class="recent-item">
+            <img src="https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/netbird.webp" alt="NetBird" onerror="this.style.display='none'">
+            <span class="ri-name">NetBird LXC</span>
+            <span class="ri-date">2026-03-05</span>
+          </div>
+          <div class="recent-item">
+            <img src="https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/open-webui.webp" alt="Open WebUI" onerror="this.style.display='none'">
+            <span class="ri-name">Open WebUI LXC</span>
+            <span class="ri-date">2026-02-28</span>
+          </div>
+          <div class="recent-item">
+            <img src="https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/homarr.webp" alt="Homarr" onerror="this.style.display='none'">
+            <span class="ri-name">Homarr LXC</span>
+            <span class="ri-date">2026-02-21</span>
+          </div>
+          <div class="recent-item">
+            <img src="https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/stirling-pdf.webp" alt="Stirling PDF" onerror="this.style.display='none'">
+            <span class="ri-name">Stirling-PDF LXC</span>
+            <span class="ri-date">2026-02-14</span>
+          </div>
         </div>
       </div>
 
-      <!-- Info -->
+      <!-- Get started -->
       <div class="panel">
-        <div class="panel-header"><span class="panel-title">About</span></div>
-        <div style="padding:16px;font-size:.8rem;color:var(--muted);line-height:1.7;">
-          <p>Monitors <a href="https://community-scripts.github.io/ProxmoxVE/scripts" target="_blank" style="color:var(--accent);text-decoration:none;">community-scripts.github.io</a> for new Proxmox scripts.</p>
-          <br>
-          <p>⏱ Auto-checks every <strong style="color:var(--text)">60 minutes</strong>.</p>
-          <p>🔔 Sends Discord embeds for each new script.</p>
-          <p>📋 Keeps the last 200 events in history.</p>
+        <div class="panel-header"><span class="panel-title">Get Started</span></div>
+        <div style="padding:16px;">
+          <div class="install-card">
+            <p>Run with Docker in seconds:</p>
+            <code>docker run -d \
+  --name lookscript \
+  -p 8099:5000 \
+  -v lookscript-data:/data \
+  -e DISCORD_WEBHOOK_URL=your_url \
+  --restart unless-stopped \
+  elderflowa/lookscript</code>
+            <p style="margin-top:12px;">Available on <a href="https://hub.docker.com/r/elderflowa/lookscript" target="_blank">Docker Hub</a> and <a href="https://github.com/elderflowa/lookscript/pkgs/container/lookscript" target="_blank">GHCR</a>.</p>
+          </div>
         </div>
       </div>
 
-      <!-- Force Reset -->
-      <div class="panel" style="border-color: rgba(239,68,68,.2);">
-        <div class="panel-header" style="border-color: rgba(239,68,68,.2);">
+      <!-- Danger zone (visual only) -->
+      <div class="panel" style="border-color:rgba(239,68,68,.2);">
+        <div class="panel-header" style="border-color:rgba(239,68,68,.2);">
           <span class="panel-title" style="color:var(--red);">Danger Zone</span>
         </div>
         <div style="padding:16px;">
-          <p style="font-size:.78rem;color:var(--muted);margin-bottom:12px;line-height:1.6;">Clears all known scripts and event history, then re-seeds the 3 newest scripts — <strong style="color:var(--text)">including Discord notifications</strong>. Useful for testing.</p>
-          <button class="btn btn-danger" id="resetBtn" onclick="forceReset()" style="width:100%;justify-content:center;">
+          <p style="font-size:.78rem;color:var(--muted);margin-bottom:12px;line-height:1.6;">Clears all known scripts and event history, then re-seeds the 3 newest scripts — <strong style="color:var(--text)">including Discord notifications</strong>.</p>
+          <button class="btn btn-danger" style="width:100%;justify-content:center;" title="Disabled in demo">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
             Force Reset & Re-seed
           </button>
-          <div class="msg" id="resetMsg"></div>
         </div>
       </div>
 
@@ -673,79 +371,108 @@
   </div>
 </div>
 
-<!-- Toast -->
-<div id="toast"></div>
-
 <script>
-  const API = '';
-
-  function toast(msg, type = 'info') {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.className = `show t-${type}`;
-    clearTimeout(t._timer);
-    t._timer = setTimeout(() => t.classList.remove('show'), 3500);
-  }
+  const EVENTS = [
+    {
+      type: 'new_script', notified: true,
+      timestamp: new Date(Date.now() - 1000 * 60 * 47).toISOString(),
+      script: {
+        name: 'ImmichFrame LXC', date: '2026-03-07',
+        description: 'ImmichFrame is a digital photo frame web application that connects to your Immich server and displays your photos as a fullscreen slideshow.',
+        icon: 'https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/immich-frame.webp',
+        url: 'https://community-scripts.github.io/ProxmoxVE/scripts?id=immichframe'
+      }
+    },
+    {
+      type: 'check',
+      timestamp: new Date(Date.now() - 1000 * 60 * 47).toISOString(),
+      message: 'Check complete. Found 1 new script. Total tracked: 484'
+    },
+    {
+      type: 'new_script', notified: true,
+      timestamp: new Date(Date.now() - 1000 * 3600 * 28).toISOString(),
+      script: {
+        name: 'ddclient LXC', date: '2026-03-05',
+        description: 'ddclient is a Perl client used to update dynamic DNS entries for accounts on a wide range of dynamic DNS service providers. It supports multiple protocols and providers.',
+        icon: 'https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/ddclient.webp',
+        url: 'https://community-scripts.github.io/ProxmoxVE/scripts?id=ddclient'
+      }
+    },
+    {
+      type: 'new_script', notified: true,
+      timestamp: new Date(Date.now() - 1000 * 3600 * 28.5).toISOString(),
+      script: {
+        name: 'NetBird LXC', date: '2026-03-05',
+        description: 'NetBird is an open source VPN management platform that creates secure peer-to-peer networks using WireGuard. Zero-configuration networking with SSO integration and access control policies.',
+        icon: 'https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/netbird.webp',
+        url: 'https://community-scripts.github.io/ProxmoxVE/scripts?id=netbird'
+      }
+    },
+    {
+      type: 'check',
+      timestamp: new Date(Date.now() - 1000 * 3600 * 29).toISOString(),
+      message: 'Check complete. Found 2 new scripts. Total tracked: 483'
+    },
+    {
+      type: 'new_script', notified: true,
+      timestamp: new Date(Date.now() - 1000 * 3600 * 72).toISOString(),
+      script: {
+        name: 'Open WebUI LXC', date: '2026-02-28',
+        description: 'Open WebUI is a self-hosted web interface for running large language models locally. Supports Ollama and OpenAI-compatible APIs with a clean chat interface.',
+        icon: 'https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/open-webui.webp',
+        url: 'https://community-scripts.github.io/ProxmoxVE/scripts?id=open-webui'
+      }
+    },
+    {
+      type: 'check',
+      timestamp: new Date(Date.now() - 1000 * 3600 * 73).toISOString(),
+      message: 'Check complete. Found 1 new script. Total tracked: 481'
+    },
+    {
+      type: 'new_script', notified: true,
+      timestamp: new Date(Date.now() - 1000 * 3600 * 24 * 7).toISOString(),
+      script: {
+        name: 'Homarr LXC', date: '2026-02-21',
+        description: 'Homarr is a simple and lightweight homepage for your server. It integrates with many services and provides a clean dashboard for all your self-hosted apps.',
+        icon: 'https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/homarr.webp',
+        url: 'https://community-scripts.github.io/ProxmoxVE/scripts?id=homarr'
+      }
+    },
+    {
+      type: 'init',
+      timestamp: new Date(Date.now() - 1000 * 3600 * 24 * 30).toISOString(),
+      message: 'Monitor started. Seeding latest 3 of 478 tracked scripts.'
+    }
+  ];
 
   function timeAgo(iso) {
     if (!iso) return '—';
     const diff = (Date.now() - new Date(iso)) / 1000;
-    if (diff < 60)   return 'just now';
-    if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+    if (diff < 60)    return 'just now';
+    if (diff < 3600)  return `${Math.floor(diff/60)}m ago`;
     if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
     return `${Math.floor(diff/86400)}d ago`;
   }
 
-  function formatDate(iso) {
-    if (!iso) return '';
-    try {
-      const d = new Date(iso);
-      return d.toLocaleString(undefined, { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
-    } catch { return iso; }
-  }
-
-  function imgEl(src, alt) {
-    const img = document.createElement('img');
-    img.src = src;
-    img.alt = alt || '';
-    img.className = 'script-icon';
-    img.onerror = function() {
-      const fb = document.createElement('div');
-      fb.className = 'script-icon-fallback';
-      fb.textContent = '📦';
-      this.replaceWith(fb);
-    };
-    return img;
-  }
-
-  function renderTimeline(events) {
+  function renderTimeline() {
     const container = document.getElementById('timeline');
-    document.getElementById('eventCount').textContent = `${events.length} event${events.length !== 1 ? 's' : ''}`;
-
-    if (!events.length) {
-      container.innerHTML = `<div class="tl-empty">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        <p>No events yet. Try checking now!</p></div>`;
-      return;
-    }
-
     container.innerHTML = '';
-    events.forEach((ev, i) => {
+
+    EVENTS.forEach((ev, i) => {
       const item = document.createElement('div');
       item.className = 'tl-item';
-      item.style.animationDelay = `${i * 0.04}s`;
+      item.style.animationDelay = `${i * 0.06}s`;
 
       const lineCol = document.createElement('div');
       lineCol.className = 'tl-line-col';
-
       const dot = document.createElement('div');
-      dot.className = `tl-dot ${ev.type || 'check'}`;
-
-      const connector = document.createElement('div');
-      connector.className = 'tl-connector';
-
+      dot.className = `tl-dot ${ev.type}`;
       lineCol.appendChild(dot);
-      if (i < events.length - 1) lineCol.appendChild(connector);
+      if (i < EVENTS.length - 1) {
+        const con = document.createElement('div');
+        con.className = 'tl-connector';
+        lineCol.appendChild(con);
+      }
 
       const content = document.createElement('div');
       content.className = 'tl-content';
@@ -755,15 +482,17 @@
         const card = document.createElement('div');
         card.className = 'script-card';
 
-        // Icon
-        if (s.icon) {
-          card.appendChild(imgEl(s.icon, s.name));
-        } else {
+        const img = document.createElement('img');
+        img.src = s.icon;
+        img.alt = s.name;
+        img.className = 'script-icon';
+        img.onerror = function() {
           const fb = document.createElement('div');
           fb.className = 'script-icon-fallback';
           fb.textContent = '📦';
-          card.appendChild(fb);
-        }
+          this.replaceWith(fb);
+        };
+        card.appendChild(img);
 
         const info = document.createElement('div');
         info.className = 'script-info';
@@ -771,48 +500,42 @@
         const nameRow = document.createElement('div');
         nameRow.className = 'script-name';
         const nameLink = document.createElement('a');
-        nameLink.href = s.url || '#';
+        nameLink.href = s.url;
         nameLink.target = '_blank';
-        nameLink.textContent = s.name || 'Unknown Script';
+        nameLink.textContent = s.name;
         nameRow.appendChild(nameLink);
 
-        const badgeNew = document.createElement('span');
-        badgeNew.className = ev.seeded ? 'badge badge-seeded' : 'badge badge-new';
-        badgeNew.textContent = ev.seeded ? 'SEEDED' : 'NEW';
-        nameRow.appendChild(badgeNew);
+        const b1 = document.createElement('span');
+        b1.className = 'badge badge-new';
+        b1.textContent = 'NEW';
+        nameRow.appendChild(b1);
 
-        if (ev.seeded) {
-          // seeded on first boot — no Discord ping, just informational
-        } else if (ev.notified) {
-          const badgeNotif = document.createElement('span');
-          badgeNotif.className = 'badge badge-notified';
-          badgeNotif.textContent = '✓ Sent';
-          nameRow.appendChild(badgeNotif);
-        } else if (ev.notified === false && !ev.seeded) {
-          // only show failed if it was a real attempt (webhook configured)
+        if (ev.notified) {
+          const b2 = document.createElement('span');
+          b2.className = 'badge badge-notified';
+          b2.textContent = '✓ Sent';
+          nameRow.appendChild(b2);
         }
 
         const desc = document.createElement('div');
         desc.className = 'script-desc';
-        desc.textContent = s.description || '';
+        desc.textContent = s.description;
 
         const meta = document.createElement('div');
         meta.className = 'script-meta';
-        if (s.date) meta.innerHTML += `<span>📅 ${s.date}</span>`;
-        meta.innerHTML += `<span>🕒 ${timeAgo(ev.timestamp)}</span>`;
+        meta.innerHTML = `<span>📅 ${s.date}</span><span>🕒 ${timeAgo(ev.timestamp)}</span>`;
 
         info.appendChild(nameRow);
         info.appendChild(desc);
         info.appendChild(meta);
         card.appendChild(info);
         content.appendChild(card);
-
       } else {
-        const sysEl = document.createElement('div');
-        sysEl.className = 'sys-event';
+        const sys = document.createElement('div');
+        sys.className = 'sys-event';
         const icon = ev.type === 'init' ? '🚀' : '🔍';
-        sysEl.innerHTML = `<span>${icon}</span><span>${ev.message || 'System event'}</span><span style="margin-left:auto;opacity:.5">${timeAgo(ev.timestamp)}</span>`;
-        content.appendChild(sysEl);
+        sys.innerHTML = `<span>${icon}</span><span>${ev.message}</span><span style="margin-left:auto;opacity:.5">${timeAgo(ev.timestamp)}</span>`;
+        content.appendChild(sys);
       }
 
       item.appendChild(lineCol);
@@ -821,207 +544,9 @@
     });
   }
 
-  function renderRecent(events) {
-    const newScripts = events.filter(e => e.type === 'new_script' && e.script).slice(0, 8);
-    const container = document.getElementById('recentList');
-    if (!newScripts.length) {
-      container.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:.82rem;">No new scripts detected yet.</div>';
-      return;
-    }
-    container.innerHTML = '';
-    newScripts.forEach(ev => {
-      const s = ev.script;
-      const item = document.createElement('div');
-      item.className = 'recent-item';
-
-      if (s.icon) {
-        const img = document.createElement('img');
-        img.src = s.icon;
-        img.alt = s.name;
-        img.onerror = function() {
-          const fb = document.createElement('div');
-          fb.className = 'ri-fallback';
-          fb.textContent = '📦';
-          this.replaceWith(fb);
-        };
-        item.appendChild(img);
-      } else {
-        const fb = document.createElement('div');
-        fb.className = 'ri-fallback';
-        fb.textContent = '📦';
-        item.appendChild(fb);
-      }
-
-      const name = document.createElement('span');
-      name.className = 'ri-name';
-      name.textContent = s.name || '—';
-
-      const date = document.createElement('span');
-      date.className = 'ri-date';
-      date.textContent = s.date || timeAgo(ev.timestamp);
-
-      item.appendChild(name);
-      item.appendChild(date);
-      container.appendChild(item);
-    });
-  }
-
-  async function loadEvents() {
-    try {
-      const r = await fetch(`${API}/api/events`);
-      const d = await r.json();
-      renderTimeline(d.events || []);
-      renderRecent(d.events || []);
-    } catch(e) { console.error('loadEvents error', e); }
-  }
-
-  async function loadStats() {
-    try {
-      const r = await fetch(`${API}/api/stats`);
-      const d = await r.json();
-      document.getElementById('statTotal').textContent = d.total_tracked ?? '—';
-      document.getElementById('statNew').textContent = d.total_new_found ?? '—';
-      document.getElementById('statLastCheck').textContent = d.last_check ? timeAgo(d.last_check) : '—';
-
-      const dot = document.getElementById('webhookDot');
-      const statusText = document.getElementById('webhookStatusText');
-      if (d.webhook_configured) {
-        dot.className = 'status-dot on';
-        statusText.textContent = 'Connected';
-        statusText.style.color = 'var(--green)';
-      } else {
-        dot.className = 'status-dot off';
-        statusText.textContent = 'Not configured';
-        statusText.style.color = '';
-      }
-    } catch(e) { console.error('loadStats error', e); }
-  }
-
-  async function refreshAll() {
-    const icon = document.getElementById('refreshIcon');
-    icon.classList.add('rotating');
-    await Promise.all([loadEvents(), loadStats()]);
-    setTimeout(() => icon.classList.remove('rotating'), 600);
-    toast('Refreshed', 'info');
-  }
-
-  async function triggerCheck() {
-    const btn = document.getElementById('checkBtn');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> Checking…';
-    try {
-      const r = await fetch(`${API}/api/check`, { method: 'POST' });
-      const d = await r.json();
-      toast('Check triggered! Refreshing in 5s…', 'info');
-      setTimeout(refreshAll, 5000);
-    } catch(e) {
-      toast('Failed to trigger check', 'error');
-    } finally {
-      setTimeout(() => {
-        btn.disabled = false;
-        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg> Check Now';
-      }, 2000);
-    }
-  }
-
-  async function forceReset() {
-    const btn = document.getElementById('resetBtn');
-    const msg = document.getElementById('resetMsg');
-    if (!confirm('This will clear all state and re-seed the 3 newest scripts, sending Discord notifications if a webhook is configured. Continue?')) return;
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> Resetting…';
-    try {
-      const r = await fetch(`${API}/api/reset`, { method: 'POST' });
-      const d = await r.json();
-      if (d.success) {
-        msg.className = 'msg success';
-        msg.textContent = '✓ Reset triggered! Refreshing in 5s…';
-        toast('Reset triggered!', 'success');
-        setTimeout(refreshAll, 5000);
-      } else {
-        msg.className = 'msg error';
-        msg.textContent = d.error || 'Reset failed';
-        toast('Reset failed', 'error');
-      }
-    } catch(e) {
-      msg.className = 'msg error';
-      msg.textContent = 'Connection error';
-      toast('Connection error', 'error');
-    } finally {
-      setTimeout(() => {
-        btn.disabled = false;
-        btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg> Force Reset & Re-seed';
-        msg.className = 'msg';
-      }, 6000);
-    }
-  }
-
-  async function saveWebhook() {
-    const url = document.getElementById('webhookInput').value.trim();
-    const msg = document.getElementById('webhookMsg');
-    try {
-      const r = await fetch(`${API}/api/webhook`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ webhook_url: url })
-      });
-      const d = await r.json();
-      if (d.success) {
-        msg.className = 'msg success';
-        msg.textContent = '✓ Webhook saved successfully';
-        toast('Webhook saved!', 'success');
-        loadStats();
-      } else {
-        msg.className = 'msg error';
-        msg.textContent = d.error || 'Failed to save';
-      }
-    } catch(e) {
-      msg.className = 'msg error';
-      msg.textContent = 'Connection error';
-    }
-    setTimeout(() => msg.className = 'msg', 4000);
-  }
-
-  async function testWebhook() {
-    const btn = document.getElementById('testBtn');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> Sending…';
-    const msg = document.getElementById('webhookMsg');
-    try {
-      const r = await fetch(`${API}/api/webhook/test`, { method: 'POST' });
-      const d = await r.json();
-      if (d.success) {
-        msg.className = 'msg success';
-        msg.textContent = '✓ Test sent! Check your Discord channel.';
-        toast('Test notification sent!', 'success');
-      } else {
-        msg.className = 'msg error';
-        msg.textContent = d.error || 'Test failed';
-        toast('Test failed', 'error');
-      }
-    } catch(e) {
-      msg.className = 'msg error';
-      msg.textContent = 'Connection error';
-    } finally {
-      setTimeout(() => {
-        btn.disabled = false;
-        btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg> Test';
-        msg.className = 'msg';
-      }, 4000);
-    }
-  }
-
-  // Init
-  (async () => {
-    await Promise.all([loadEvents(), loadStats()]);
-    // Auto-refresh every 2 minutes
-    setInterval(refreshAll, 120000);
-    // Update time-ago strings every 30s
-    setInterval(() => {
-      document.getElementById('statLastCheck') && loadStats();
-    }, 30000);
-  })();
+  renderTimeline();
+  // Keep time-ago strings fresh
+  setInterval(renderTimeline, 60000);
 </script>
 </body>
 </html>
-
