@@ -8,6 +8,9 @@
 # lookscript
 [![Docker Image Version (latest semver)](https://img.shields.io/docker/v/elderflowa/lookscript?label=elderflowa%2Flookscript%3Alatest&logo=docker)](https://hub.docker.com/r/elderflowa/lookscript)
 
+
+**ARCHIVED:** Proxmox Helper-Scripts changed their UI, domain name and API, so this application no longer works.
+
 **honey-dynamic** is a simple python app that monitors [Proxmox Helper Scripts](https://community-scripts.github.io/ProxmoxVE/scripts) and shows it in an event log.
 It has webhook integration, which enables getting messages on for example Discord.
 
